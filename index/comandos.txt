@@ -1,0 +1,18 @@
+<!--DELETE FROM sua_tabela
+--WHERE categoria = 'Teclado';  
+
+--usar o delete from e o nome da tabela, no caso foi produtos
+
+--where é usado para coluna que foi categoria.
+
+-->
+
+
+UPDATE produtos
+SET especificacoes = jsonb_set(
+    especificacoes,
+    '{part_number_compativeis}', -- Caminho para o segundo elemento do array 'part_number_compativeis'
+    '"9J.N9482.004 "',
+    true -- O argumento 'true' indica que o campo será inserido se não existir
+)
+WHERE nome IN ('TC001');

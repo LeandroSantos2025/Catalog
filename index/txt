@@ -1,0 +1,147 @@
+docker run --name meu-banco-postgres -e POSTGRES_PASSWORD=minhasenha -p 5432:5432 -v postgres_data:/var/lib/postgresql/data -d postgres
+
+
+
+docker rm meu-banco-postgres = ele remove o banco
+
+docker volume rm postgres_data
+
+
+
+Guia Rápido de Comandos SQL (Cheat Sheet)
+
+Este guia rápido (cheat sheet) cobre os comandos SQL mais comuns para manusear o banco de dados do seu projeto, divididos pela sigla CRUD:
+
+Create (Criar)
+
+Read (Ler)
+
+Update (Atualizar)
+
+Delete (Apagar)
+
+1. READ (Ler / Ver Dados)
+
+O comando mais usado e seguro, pois não modifica dados.
+
+SELECT
+
+Ver todas as colunas de uma tabela:
+
+SELECT * FROM Produtos;
+SELECT * FROM Users;
+
+
+Ver colunas específicas (ex: nome, categoria):
+
+SELECT nome, categoria FROM Produtos;
+
+
+Filtrar com WHERE (o filtro mais importante):
+
+Procurar por ID (retorna 1 resultado):
+
+SELECT * FROM Produtos WHERE id = 5;
+
+
+Procurar por texto (com % como coringa):
+
+-- Acha produtos que contenham "Dell"
+SELECT * FROM Produtos WHERE nome LIKE '%Dell%';
+
+
+Procurar por categoria:
+
+SELECT * FROM Produtos WHERE categoria = 'Tela';
+
+
+2. CREATE (Criar / Inserir Dados)
+
+Adiciona novos registros (linhas) à tabela.
+
+INSERT INTO
+
+Exemplo Users (o id é SERIAL - automático):
+
+INSERT INTO Users (username, password_hash)
+VALUES ('novo_usuario', 'hash_da_senha_criptografada');
+
+
+Exemplo Produtos (o campo especificacoes aceita texto JSON):
+
+INSERT INTO Produtos (nome, categoria, especificacoes)
+VALUES (
+    'Produto Teste', 
+    'Teclado',
+    '{"layout": "ABNT2", "cor": "Preto"}'
+);
+
+
+3. UPDATE (Atualizar / Editar Dados)
+
+Comando perigoso que modifica dados existentes.
+
+UPDATE ... SET ... WHERE
+
+REGRA DE OURO: SEMPRE use WHERE!
+Esquecê-lo atualizará TODAS AS LINHAS da tabela.
+
+Atualizar o nome de um produto:
+
+UPDATE Produtos
+SET nome = 'Tela 14.0" (Marca TOP)'
+WHERE id = 1;
+
+
+Atualizar múltiplos campos:
+
+UPDATE Produtos
+SET 
+    nome = 'Fonte Dell 65W (Original)',
+    descricao = 'Fonte nova, na caixa.'
+WHERE id = 11;
+
+
+4. DELETE (Apagar / Deletar Dados)
+
+O comando MAIS PERIGOSO (remove dados permanentemente, a menos que haja backup).
+
+DELETE FROM ... WHERE
+
+REGRA DE OURO: SEMPRE use WHERE!
+Esquecê-lo apagará TODA A TABELA.
+
+Deletar um produto por ID:
+
+DELETE FROM Produtos WHERE id = 14;
+
+
+Deletar um usuário por nome:
+
+DELETE FROM Users WHERE username = 'novo_usuario';
+
+
+Comandos Bônus (Estrutura)
+
+Mexe na estrutura do banco, não nos dados.
+
+Ver estrutura da tabela (colunas, tipos):
+
+\d Produtos
+
+
+Apagar tabela (estrutura E dados):
+
+DROP TABLE IF EXISTS Produtos;
+
+
+
+
+360768143833-nn2sv2fc7v89kei0n3spjn63b1fk17g4.apps.googleusercontent.com
+
+
+
+quando eu pesquiso um produto tiopo fonte em teclado, ele acha, preciso q filtre so que esta sendo solicitado
+
+entender a logica de sku, para ter a lista em ordem crescente
+

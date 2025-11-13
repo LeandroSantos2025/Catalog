@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Produtos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+
+        /* Esconde páginas e modais por padrão */
+        .page, #login-modal, #loading-spinner, .alert-modal, #confirm-modal {
+            display: none;
+        }
+        .page.active { display: block; }
+        #login-modal.active { display: flex; }
+
+        .alert-modal, #confirm-modal { transition: opacity 0.3s ease; }
+        .loader {
+            border-top-color: #3b82f6;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        #main-app-content { display: none; }
+    
+
+        /* Estilos para os campos de formulário dinâmicos */
+        .spec-field-group { display: none; }
+        .spec-field-group.active { display: block; }
+
+        /* Ícones de Ação */
+        .icon-btn {
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        .icon-btn:hover { opacity: 1; }
+        
+        /* Submenu de Produtos */
+        #submenu-products {
+            display: none; 
+            /* Fundo branco igual à sidebar */
+        }
+        /* Rotação da seta do submenu */
+        #product-menu-arrow {
+            transition: transform 0.2s ease-in-out;
+        }
+        #product-menu-toggle.open #product-menu-arrow {
+            transform: rotate(90deg);
+        }
+    </style>
+</head>
+<body class="bg-black text-gray-900"> <!-- /* BG area de login */ -->
+
+    <div id="login-modal" class="active fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md">
+            <h2 class="text-3xl font-bold text-center text-gray-800 mb-6">Acesso ao Catálogo</h2>
+            <p class="text-center text-gray-500 mb-6">Por favor, faça login para continuar.</p>
+            <form id="login-form">
+                <div class="space-y-4">
+                    <div>
+                        <label for="username" class="block text-sm font-medium text-gray-700">Usuário</label>
+                        <input id="username" name="username" type="text" value="admin" required
+                               class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900">
+                    </div>
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-gray-700">Senha</label>
+                        <input id="password" name="password" type="password" value="admin" required
+                               class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900">
+                    </div>
+                    
+                    <p id="login-error-msg" class="text-sm text-red-600 hidden">Usuário ou senha inválidos.</p>
+
+                    <button type="submit" id="login-button"
+                            class="w-full flex justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Entrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- /* BG area de login */ -->
+
+    <div id="main-app-content" class="flex h-screen overflow-hidden">
+        
+        <!-- /* BG MENU */ -->
+        <aside class="w-64 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col transition-all duration-300">
+            
+            <div class="h-16 flex items-center justify-between px-6 border-b border-gray-200"><!-- /* BG MENU */ -->
+                <h1 class="text-xl font-bold text-gray-800">Meu Catálogo</h1>
+                <button id="logout-button" title="Sair" class="text-gray-400 hover:text-red-500 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                </button>
+            </div>
+
+            <nav class="flex-1 overflow-y-auto p-4 space-y-1">
+                <a href="#dashboard" class="nav-link flex items-center px-3 py-2.5 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors group">
+                    <svg class="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M3 6h18"></path></svg>
+                    <span class="font-medium">Dashboard</span>
+                </a>
+                
+                <button id="product-menu-toggle" class="nav-link w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors group">
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
+                        <span class="font-medium">Produtos</span>
+                    </div>
+                    <svg id="product-menu-arrow" class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                </button>
+                
+                <div id="submenu-products" class="pl-4 space-y-1 mt-1">
+                    <a href="#products-Todos" class="nav-link nav-submenu flex items-center px-3 py-2 rounded-lg text-sm text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-colors">Todos</a>
+                    <a href="#products-Tela" class="nav-link nav-submenu flex items-center px-3 py-2 rounded-lg text-sm text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-colors">Telas</a>
+                    <a href="#products-Bateria" class="nav-link nav-submenu flex items-center px-3 py-2 rounded-lg text-sm text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-colors">Baterias</a>
+                    <a href="#products-Teclado" class="nav-link nav-submenu flex items-center px-3 py-2 rounded-lg text-sm text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-colors">Teclados</a>
+                    <a href="#products-Fonte" class="nav-link nav-submenu flex items-center px-3 py-2 rounded-lg text-sm text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-colors">Fontes</a>
+                </div>
+
+                <a href="#manage-product" class="nav-link flex items-center px-3 py-2.5 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors group">
+                    <svg class="w-5 h-5 mr-3 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span class="font-medium">Cadastrar Produto</span>
+                </a>
+            </nav>
+        </aside>
+
+        <main class="flex-1 flex flex-col overflow-hidden bg-gray-50"> <!-- /* back groud do main */ -->
+            <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 shadow-sm z-10">
+                <div class="flex-1 max-w-2xl">
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        </span>
+                        <input id="search-bar" class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" type="text" placeholder="Buscar compatibilidade com IA (Ex: tela para Dell 5570)">
+                        <button id="search-button" class="absolute inset-y-0 right-0 px-4 bg-blue-600 text-white text-sm font-medium rounded-r-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                        Buscar
+                    </button>
+                    </div>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto p-8">
+
+                <div id="page-dashboard" class="page">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">Visão Geral</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider">Total Produtos</h3>
+                            <p id="kpi-total" class="text-3xl font-bold text-gray-900 mt-2">0</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider">Categorias</h3>
+                            <p id="kpi-categories" class="text-3xl font-bold text-gray-900 mt-2">0</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider">Telas</h3>
+                            <p id="kpi-telas" class="text-3xl font-bold text-blue-600 mt-2">0</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider">Baterias</h3>
+                            <p id="kpi-baterias" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">Distribuição por Categoria</h3>
+                        <div class="h-64 w-full">
+                            <canvas id="categoryChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="page-products" class="page">
+                    <div id="dynamic-filters" class="flex flex-wrap gap-4 mb-6 p-4 bg-white rounded-lg border border-gray-200 hidden">
+                     </div>
+                     <div id="dynamic-filters" class="flex flex-wrap gap-4 mb-6 p-4 bg-white rounded-lg border border-gray-200 hidden">
+
+                     </div>
+                    <div class="flex justify-between items-end mb-6">
+                        <h2 id="product-list-title" class="text-2xl font-bold text-gray-800">Catálogo</h2>
+                    </div>
+                    <div id="product-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        </div>
+                </div>
+
+
+
+
+
+                <div id="page-product-detail" class="page">
+                    <button id="back-to-products" class="mb-6 inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-sm font-medium rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+                        &larr; Voltar
+                    </button>
+                    <div id="product-detail-content" class="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
+                        </div>
+                </div>
+
+                <div id="page-search-results" class="page">
+                    <button id="back-to-products-from-search" class="mb-6 inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-sm font-medium rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+                        &larr; Voltar
+                    </button>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">Resultado da Busca IA</h2>
+                    <p class="text-gray-600 mb-8">Para: "<span id="search-query-display" class="font-semibold text-gray-800">...</span>"</p>
+                    <div id="search-results-content">
+                        </div>
+                </div>
+
+                <div id="page-manage-product" class="page">
+                    <button id="back-to-products-from-form" class="mb-6 inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-sm font-medium rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+                        &larr; Cancelar
+                    </button>
+                    
+                    <div class="max-w-4xl mx-auto">
+                        <h2 id="form-title" class="text-2xl font-bold text-gray-800 mb-6">Cadastrar Novo Produto</h2>
+                        
+                        <form id="product-form" class="bg-white p-8 rounded-xl shadow-sm border border-gray-100 space-y-6">
+                            <input type="hidden" id="product-id" name="product-id">
+
+                            <div>
+                                <label for="product-nome" class="block text-sm font-medium text-gray-700 mb-1">Nome do Produto *</label>
+                                <input type="text" id="product-nome" required
+                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-gray-900">
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label for="product-categoria" class="block text-sm font-medium text-gray-700 mb-1">Categoria *</label>
+                                    <select id="product-categoria" required
+                                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900">
+                                        <option value="">-- Selecione --</option>
+                                        <option value="Tela">Tela</option>
+                                        <option value="Bateria">Bateria</option>
+                                        <option value="Teclado">Teclado</option>
+                                        <option value="Fonte">Fonte</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="product-imagem_url" class="block text-sm font-medium text-gray-700 mb-1">URL da Imagem</label>
+                                    <input type="text" id="product-imagem_url" placeholder="https://placehold.co/..."
+                                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label for="product-descricao" class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+                                <textarea id="product-descricao" rows="3"
+                                          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900"></textarea>
+                            </div>
+                            
+                            <div class="border-t border-gray-100 pt-6">
+                                <h3 class="text-lg font-medium text-gray-800 mb-1">Especificações Técnicas</h3>
+                                <p class="text-sm text-gray-500 mb-4">Campos específicos da categoria selecionada.</p>
+                                
+                                <div id="spec-group-Tela" class="spec-field-group space-y-4">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700">Tamanho</label>
+                                            <input type="text" data-spec-key="tamanho" class="spec-field w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700">Resolução</label>
+                                            <input type="text" data-spec-key="resolucao" class="spec-field w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700">Conector</label>
+                                            <input type="text" data-spec-key="conector" class="spec-field w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700">Posição</label>
+                                            <input type="text" data-spec-key="posicao_conector" class="spec-field w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Part Numbers (Separe por vírgula)</label>
+                                        <input type="text" data-spec-key="part_number_compativeis" class="spec-field w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900">
+                                    </div>
+                                </div>
+
+                                <div id="spec-group-Bateria" class="spec-field-group space-y-4">
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700">Voltagem</label>
+                                            <input type="text" data-spec-key="voltagem" class="spec-field w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700">Capacidade</label>
+                                            <input type="text" data-spec-key="capacidade" class="spec-field w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700">Células</label>
+                                            <input type="number" data-spec-key="celulas" class="spec-field w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Part Numbers (Separe por vírgula)</label>
+                                        <input type="text" data-spec-key="part_number_compativeis" class="spec-field w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900">
+                                    </div>
+                                </div>
+
+                                <div id="spec-group-Teclado" class="spec-field-group space-y-4">
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        
+                                        <div><label class="block text-sm text-gray-700">Layout</label><input type="text" data-spec-key="layout" class="spec-field w-full px-4 py-2 border rounded-lg text-gray-900"></div>
+                                        <div><label class="block text-sm text-gray-700">Iluminação</label><input type="text" data-spec-key="iluminacao" class="spec-field w-full px-4 py-2 border rounded-lg text-gray-900"></div>
+                                        <div><label class="block text-sm text-gray-700">Cor</label><input type="text" data-spec-key="cor" class="spec-field w-full px-4 py-2 border rounded-lg text-gray-900"></div>
+                                        
+                                        <div><label class="block text-sm text-gray-700">Moldura</label><input type="text" data-spec-key="moldura" class="spec-field w-full px-4 py-2 border rounded-lg text-gray-900"></div>
+                                        <div><label class="block text-sm text-gray-700">Numérico</label><input type="text" data-spec-key="numerico" class="spec-field w-full px-4 py-2 border rounded-lg text-gray-900"></div>
+                                        <div><label class="block text-sm text-gray-700">Pointstick</label><input type="text" data-spec-key="pointstick" class="spec-field w-full px-4 py-2 border rounded-lg text-gray-900"></div>
+                                    </div>
+                                    <div><label class="block text-sm text-gray-700">Part Numbers (Separe por vírgula)</label><input type="text" data-spec-key="part_number_compativeis" class="spec-field w-full px-4 py-2 border rounded-lg text-gray-900"></div>
+                                </div>
+
+                                <div id="spec-group-Fonte" class="spec-field-group space-y-4">
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700">Potência</label>
+                                            <input type="text" data-spec-key="potencia" class="spec-field w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700">Voltagem Saída</label>
+                                            <input type="text" data-spec-key="voltagem_saida" class="spec-field w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700">Tipo Pino</label>
+                                            <input type="text" data-spec-key="tipo_pino" class="spec-field w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Part Numbers (Separe por vírgula)</label>
+                                        <input type="text" data-spec-key="part_number_compativeis" class="spec-field w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="text-right pt-4">
+                                <button type="submit" id="save-product-btn"
+                                        class="inline-flex justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                                    Salvar Produto
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <div id="loading-spinner" class="fixed inset-0 bg-gray-900 bg-opacity-30 flex items-center justify-center z-50 hidden backdrop-blur-sm">
+        <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-16 w-16"></div>
+    </div>
+
+    <div id="alert-modal" class="alert-modal fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 p-4 hidden opacity-0">
+        <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full transform transition-all scale-100">
+            <div class="p-6">
+                <h3 id="alert-title" class="text-lg font-bold text-gray-900 mb-2">Notificação</h3>
+                <p id="alert-message" class="text-gray-600">Mensagem.</p> 
+            </div>
+            <div class="bg-gray-50 px-6 py-4 flex justify-end rounded-b-xl">
+                <button id="alert-close-btn" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirm-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 p-4 hidden opacity-0">
+        <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full">
+            <div class="p-6">
+                <h3 id="confirm-title" class="text-lg font-bold text-gray-900 mb-2">Confirmar</h3>
+                <p id="confirm-message" class="text-gray-600">Tem certeza?</p>
+            </div>
+            <div class="bg-gray-50 px-6 py-4 flex justify-end space-x-3 rounded-b-xl">
+                <button id="confirm-cancel-btn" class="px-4 py-2 bg-white text-gray-700 border border-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">Cancelar</button>
+                <button id="confirm-ok-btn" class="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors">Sim, Confirmar</button> 
+            </div>
+        </div>
+    </div>
+    
+    <script>
+            // ==== CONFIG API ====
+        const API_BASE = "http://localhost:3000";
+
+        // ==== ESTADO GLOBAL ====
+        let allProducts = []; 
+        let authToken = localStorage.getItem('authToken');
+        let currentFilter = 'Todos';
+        let productToEdit = null;
+        let deleteCallback = null;
+        let activeSpecFilters = {}; 
+        
+        // Paginação
+        let currentPage = 1;
+        const ITEMS_PER_PAGE = 12;
+
+        // ==== ELEMENTOS ====
+        const els = {
+            loginModal: document.getElementById('login-modal'),
+            loginForm: document.getElementById('login-form'),
+            loginError: document.getElementById('login-error-msg'),
+            mainApp: document.getElementById('main-app-content'),
+            logoutBtn: document.getElementById('logout-button'),
+
+            navLinks: document.querySelectorAll('.nav-link'),
+            menuToggle: document.getElementById('product-menu-toggle'),
+            submenu: document.getElementById('submenu-products'),
+
+            pages: document.querySelectorAll('.page'),
+            prodListContainer: document.getElementById('product-list'),
+            prodListTitle: document.getElementById('product-list-title'),
+            dynamicFiltersContainer: document.getElementById('dynamic-filters'),
+            paginationControls: document.getElementById('pagination-controls'),
+
+            searchBar: document.getElementById('search-bar'),
+            searchBtn: document.getElementById('search-button'),
+            
+            prodDetailContent: document.getElementById('product-detail-content'),
+
+            prodForm: document.getElementById('product-form'),
+            formTitle: document.getElementById('form-title'),
+            catSelect: document.getElementById('product-categoria'),
+            specGroups: document.querySelectorAll('.spec-field-group'),
+
+            spinner: document.getElementById('loading-spinner'),
+            alertModal: document.getElementById('alert-modal'),
+            alertTitle: document.getElementById('alert-title'),
+            alertMsg: document.getElementById('alert-message'),
+            alertBtn: document.getElementById('alert-close-btn'),
+
+            confirmModal: document.getElementById('confirm-modal'),
+            confirmTitle: document.getElementById('confirm-title'),
+            confirmMsg: document.getElementById('confirm-message'),
+            confirmOk: document.getElementById('confirm-ok-btn'),
+            confirmCancel: document.getElementById('confirm-cancel-btn'),
+
+            backToProductsBtn: document.getElementById('back-to-products'),
+            backToProductsFromFormBtn: document.getElementById('back-to-products-from-form')
+        };
+
+        // ==== UTILITÁRIOS ====
+        const showLoad = () => els.spinner.style.display = 'flex';
+        const hideLoad = () => els.spinner.style.display = 'none';
+
+        const showAlert = (title, msg) => {
+            els.alertTitle.innerText = title; els.alertMsg.innerText = msg;
+            els.alertModal.style.display = 'flex';
+            setTimeout(() => els.alertModal.classList.remove('opacity-0'), 10);
+        };
+        const hideAlert = () => {
+            els.alertModal.classList.add('opacity-0');
+            setTimeout(() => els.alertModal.style.display = 'none', 300);
+        };
+        els.alertBtn.onclick = hideAlert;
+
+        const showConfirm = (title, msg, callback) => {
+            els.confirmTitle.innerText = title; els.confirmMsg.innerText = msg;
+            deleteCallback = callback;
+            els.confirmModal.style.display = 'flex';
+            setTimeout(() => els.confirmModal.classList.remove('opacity-0'), 10);
+        };
+        const hideConfirm = () => {
+            deleteCallback = null;
+            els.confirmModal.classList.add('opacity-0');
+            setTimeout(() => els.confirmModal.style.display = 'none', 300);
+        };
+        els.confirmCancel.onclick = hideConfirm;
+        els.confirmOk.onclick = () => { if (deleteCallback) deleteCallback(); hideConfirm(); };
+
+        const secureFetch = async (url, opts = {}) => {
+            if (!authToken) throw new Error('Sessão expirada');
+            const headers = { ...opts.headers, 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' };
+            const res = await fetch(url, { ...opts, headers });
+            if (res.status === 401 || res.status === 403) {
+                authToken = null; localStorage.removeItem('authToken');
+                location.reload(); throw new Error('Token inválido');
+            }
+            return res;
+        };
+
+        // ==== NAVEGAÇÃO ====
+        const handleHashChange = () => {
+            const hash = window.location.hash.substring(1) || 'dashboard';
+
+            if (hash.startsWith('products-')) {
+                currentFilter = hash.split('-')[1];
+                showPage('page-products');
+            } else if (hash === 'products') {
+                currentFilter = 'Todos';
+                showPage('page-products');
+            } else {
+                showPage(`page-${hash}`);
+            }
+        };
+
+        const showPage = (pageId) => {
+            els.pages.forEach(p => p.classList.remove('active'));
+            const target = document.getElementById(pageId);
+            if (target) target.classList.add('active');
+
+            if (pageId === 'page-products') {
+                if (currentFilter !== 'Todos' && els.searchBar.value === '') {
+                     activeSpecFilters = {}; 
+                     currentPage = 1;
+                }
+                els.prodListTitle.innerText = currentFilter === 'Todos' ? 'Todos os Produtos' : `Categoria: ${currentFilter}`;
+                
+                // Se o filtro mudou, limpa os selects visuais
+                if (els.dynamicFiltersContainer.innerHTML === '' || activeSpecFilters == {}) {
+                    els.dynamicFiltersContainer.innerHTML = '';
+                }
+                
+                renderList();
+            }
+            
+            if (pageId === 'page-manage-product' && !productToEdit) {
+                els.formTitle.innerText = 'Cadastrar Novo Produto';
+                els.prodForm.reset();
+                toggleSpecs('');
+            } else if (pageId !== 'page-manage-product') {
+                productToEdit = null;
+            }
+
+            // Menu Highlighting (Corrigido)
+            const cleanHash = `#${pageId.replace('page-', '')}${currentFilter !== 'Todos' && pageId === 'page-products' ? '-' + currentFilter : ''}`;
+            
+            els.navLinks.forEach(link => {
+                // FIX: Verifica se link.hash existe (evita erro no botão)
+                if (!link.hash) return;
+
+                const isActive = link.hash === cleanHash || (cleanHash.startsWith('#products') && link.hash === '#products-Todos' && currentFilter === 'Todos');
+
+                if (isActive) {
+                    link.classList.add('bg-blue-100', 'text-blue-600');
+                    link.classList.remove('text-gray-600', 'text-gray-500', 'hover:bg-gray-50');
+                    if (link.classList.contains('nav-submenu')) {
+                        els.submenu.style.display = 'block';
+                        els.menuToggle.classList.add('open', 'bg-gray-100');
+                    }
+                } else {
+                    link.classList.remove('bg-blue-100', 'text-blue-600');
+                    if (link.classList.contains('nav-submenu')) {
+                        link.classList.add('text-gray-500', 'hover:bg-gray-50');
+                    } else {
+                        link.classList.add('text-gray-600', 'hover:bg-gray-50');
+                    }
+                }
+            });
+            
+            if (!cleanHash.startsWith('#products')) {
+                els.menuToggle.classList.remove('bg-gray-100', 'open');
+                els.submenu.style.display = 'none';
+            }
+        };
+
+        window.addEventListener('hashchange', handleHashChange);
+        els.navLinks.forEach(link => { link.addEventListener('click', (e) => {}); });
+        els.menuToggle.onclick = () => {
+            const isOpen = els.submenu.style.display === 'block';
+            els.submenu.style.display = isOpen ? 'none' : 'block';
+            els.menuToggle.classList.toggle('open', !isOpen);
+        };
+
+        // ==== FUNÇÕES DE RENDERIZAÇÃO (AGORA NO ESCOPO GLOBAL) ====
+
+        // 1. Renderiza um Card (Corrigido erro de referência)
+        function renderProductCard(p) {
+            const safeName = (p.nome || '').replace(/'/g, "\\'");
+            return `
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+                    <div class="h-48 bg-gray-100 relative">
+                        <img src="${p.imagem_url || 'https://placehold.co/400?text=Sem+Foto'}" class="w-full h-full object-cover" alt="${p.nome}" loading="lazy">
+                    </div>
+                    <div class="p-5">
+                        <div class="mb-4">
+                            <span class="text-xs font-semibold px-2 py-1 bg-gray-100 text-gray-600 rounded-full">${p.categoria}</span>
+                        </div>
+                        <h3 class="font-bold text-gray-800 text-lg mb-1 truncate" title="${p.nome}">${p.nome}</h3>
+                        <div class="flex gap-2 mt-4 pt-4 border-t border-gray-50">
+                            <button onclick="viewDetail(${p.id})" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm py-2 rounded-lg transition-colors">Detalhes</button>
+                            <button onclick="editProd(${p.id})" class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Editar"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg></button>
+                            <button onclick="delProd(${p.id}, '${safeName}')" class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Excluir"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 2. Filtros Dinâmicos
+        function renderDynamicFilters(products) {
+            if (!els.dynamicFiltersContainer) return;
+            
+            // Se já temos filtros ativos, não reconstrua tudo para não perder o foco
+            if (els.dynamicFiltersContainer.innerHTML !== '' && Object.keys(activeSpecFilters).length > 0) return;
+
+            els.dynamicFiltersContainer.innerHTML = '';
+            els.dynamicFiltersContainer.classList.add('hidden');
+            const specKeys = new Set();
+            products.forEach(p => { if (p.especificacoes) Object.keys(p.especificacoes).forEach(k => specKeys.add(k)); });
+            if (specKeys.size === 0) return;
+
+            let hasFilters = false;
+            specKeys.forEach(key => {
+                const values = new Set();
+                products.forEach(p => {
+                    if (p.especificacoes && p.especificacoes[key] && !Array.isArray(p.especificacoes[key])) {
+                        values.add(p.especificacoes[key]);
+                    }
+                });
+
+                if (values.size > 1 && values.size < 30) {
+                    hasFilters = true;
+                    const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'flex flex-col';
+                    const select = document.createElement('select');
+                    select.className = 'border border-gray-300 rounded-md text-sm p-2 focus:ring-2 focus:ring-blue-500 outline-none text-gray-900';
+                    select.onchange = (e) => {
+                        if (e.target.value === '') delete activeSpecFilters[key];
+                        else activeSpecFilters[key] = e.target.value;
+                        currentPage = 1; 
+                        renderList(false); 
+                    };
+                    select.innerHTML = `<option value="">${label} (Todos)</option>`;
+                    [...values].sort().forEach(val => { 
+                        const option = document.createElement('option');
+                        option.value = val;
+                        option.innerText = val;
+                        if (activeSpecFilters[key] === val) option.selected = true;
+                        select.appendChild(option);
+                    });
+                    wrapper.appendChild(select);
+                    els.dynamicFiltersContainer.appendChild(wrapper);
+                }
+            });
+
+            if (hasFilters) {
+                els.dynamicFiltersContainer.classList.remove('hidden');
+                const clearBtn = document.createElement('button');
+                clearBtn.innerText = 'Limpar Filtros';
+                clearBtn.className = 'text-sm text-red-600 hover:underline self-end mb-2 ml-2';
+                clearBtn.onclick = () => {
+                    activeSpecFilters = {};
+                    currentPage = 1;
+                    els.dynamicFiltersContainer.innerHTML = ''; // Força rebuild limpo
+                    renderList(true);
+                };
+                els.dynamicFiltersContainer.appendChild(clearBtn);
+            }
+        }
+
+        // 3. Renderiza a Lista Principal
+        const renderList = (shouldUpdateFilters = true) => {
+            els.prodListContainer.innerHTML = '';
+            // Garante que o controle de paginação existe antes de tentar limpar
+            if(document.getElementById('pagination-controls')) {
+                 document.getElementById('pagination-controls').innerHTML = '';
+            }
+            
+            let filtered = allProducts.filter(p => currentFilter === 'Todos' || p.categoria === currentFilter);
+            
+            if (shouldUpdateFilters) {
+                renderDynamicFilters(filtered);
+            }
+
+            // Filtro por Specs
+            filtered = filtered.filter(p => {
+                for (const [key, value] of Object.entries(activeSpecFilters)) {
+                    if (!p.especificacoes || p.especificacoes[key] != value) return false;
+                }
+                return true;
+            });
+
+            // Ordenação Alfabética (Pelo Nome/SKU)
+            filtered.sort((a, b) => a.nome.localeCompare(b.nome, undefined, { numeric: true }));
+
+            // Paginação
+            const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+            if (currentPage > totalPages && totalPages > 0) currentPage = totalPages;
+            
+            const start = (currentPage - 1) * ITEMS_PER_PAGE;
+            const end = start + ITEMS_PER_PAGE;
+            const paginatedItems = filtered.slice(start, end);
+
+            if (paginatedItems.length === 0) {
+                els.prodListContainer.innerHTML = `<div class="col-span-full text-center py-10 text-gray-500">Nenhum produto encontrado.</div>`;
+                if(els.paginationControls) els.paginationControls.classList.add('hidden');
+                return;
+            }
+
+            paginatedItems.forEach(p => {
+                els.prodListContainer.innerHTML += renderProductCard(p);
+            });
+            
+            // Controles de Paginação
+            if (totalPages > 1) {
+                // Se o container não existir no HTML, cria-o dinamicamente (fallback)
+                if (!document.getElementById('pagination-controls')) {
+                    const div = document.createElement('div');
+                    div.id = 'pagination-controls';
+                    div.className = "flex justify-center items-center space-x-4 mt-8";
+                    els.prodListContainer.parentNode.appendChild(div);
+                }
+                
+                const pageContainer = document.getElementById('pagination-controls');
+                pageContainer.classList.remove('hidden');
+                pageContainer.innerHTML = `
+                    <button id="prev-page" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50" ${currentPage===1?'disabled':''}>&larr; Anterior</button>
+                    <span id="page-info" class="text-gray-600 font-medium">Página ${currentPage} de ${totalPages}</span>
+                    <button id="next-page" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50" ${currentPage===totalPages?'disabled':''}>Próxima &rarr;</button>
+                `;
+                document.getElementById('prev-page').onclick = () => { currentPage--; renderList(false); window.scrollTo(0,0); };
+                document.getElementById('next-page').onclick = () => { currentPage++; renderList(false); window.scrollTo(0,0); };
+            } else {
+                if(document.getElementById('pagination-controls')) {
+                    document.getElementById('pagination-controls').classList.add('hidden');
+                }
+            }
+        };
+
+        // ==== CARREGAMENTO DE DADOS ====
+        const loadProducts = async (searchTerm = '') => {
+            showLoad();
+            try {
+                let url = `${API_BASE}/products`;
+                if (searchTerm) {
+                    url += `?search=${encodeURIComponent(searchTerm)}`;
+                }
+                const res = await secureFetch(url);
+                if (!res.ok) throw new Error("Falha de rede");
+                
+                allProducts = await res.json(); 
+                
+                if (searchTerm) {
+                    currentFilter = 'Todos';
+                    els.prodListTitle.innerText = `Resultados para: "${searchTerm}"`;
+                }
+                
+                currentPage = 1;
+                renderList();
+                updateKPIs();
+            } catch (e) {
+                if (e.message !== 'Sessão expirada') showAlert('Erro', 'Falha ao carregar produtos.');
+            } finally { hideLoad(); }
+        };
+
+        // ==== AÇÕES INDIVIDUAIS ====
+        window.viewDetail = async (id) => {
+            showLoad();
+            try {
+                const res = await secureFetch(`${API_BASE}/product/${id}`);
+                if(!res.ok) throw new Error();
+                const p = await res.json();
+                
+                let specsHtml = '<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">';
+                for(const k in p.especificacoes) {
+                    const val = Array.isArray(p.especificacoes[k]) ? p.especificacoes[k].join(', ') : p.especificacoes[k];
+                    if(val) specsHtml += `<div class="bg-gray-50 p-3 rounded-lg"><span class="block text-xs text-gray-500 uppercase">${k.replace(/_/g, ' ')}</span><span class="font-medium text-gray-800">${val}</span></div>`;
+                }
+                specsHtml += '</div>';
+
+                els.prodDetailContent.innerHTML = `
+                    <div class="flex flex-col md:flex-row gap-8">
+                        <div class="w-full md:w-1/3"><img src="${p.imagem_url || 'https://placehold.co/600?text=Sem+Foto'}" class="w-full rounded-xl shadow-sm border border-gray-100"></div>
+                        <div class="w-full md:w-2/3">
+                            <div class="mb-2"><span class="px-3 py-1 bg-blue-100 text-blue-700 text-sm font-bold rounded-full">${p.categoria}</span></div>
+                            <h2 class="text-3xl font-bold text-gray-900 mb-4">${p.nome}</h2>
+                            <div class="prose text-gray-600 mb-6">${p.descricao || 'Sem descrição.'}</div>
+                            <h3 class="text-lg font-bold text-gray-800 border-b pb-2">Especificações</h3>
+                            ${specsHtml}
+                        </div>
+                    </div>`;
+                window.location.hash = 'product-detail';
+            } catch(e) { showAlert('Erro', 'Falha ao abrir produto.'); } 
+            finally { hideLoad(); }
+        };
+
+        window.editProd = (id) => {
+            const p = allProducts.find(x => x.id === id);
+            if(!p) return;
+            productToEdit = p;
+            els.formTitle.innerText = `Editando: ${p.nome}`;
+            document.getElementById('product-id').value = p.id;
+            document.getElementById('product-nome').value = p.nome;
+            els.catSelect.value = p.categoria;
+            document.getElementById('product-imagem_url').value = p.imagem_url;
+            document.getElementById('product-descricao').value = p.descricao;
+            toggleSpecs(p.categoria);
+            
+            const group = document.querySelector(`#spec-group-${p.categoria}`);
+            if(group && p.especificacoes) {
+                group.querySelectorAll('input').forEach(inp => inp.value = ''); 
+                for (const key in p.especificacoes) {
+                    const input = group.querySelector(`[data-spec-key="${key}"]`);
+                    if (input) {
+                        input.value = Array.isArray(p.especificacoes[key]) ? p.especificacoes[key].join(', ') : p.especificacoes[key];
+                    }
+                }
+            }
+            window.location.hash = 'manage-product';
+        };
+
+        window.delProd = (id, name) => {
+            showConfirm('Excluir Produto', `Apagar "${name}" permanentemente?`, async () => {
+                showLoad();
+                try {
+                    await secureFetch(`${API_BASE}/products/${id}`, { method: 'DELETE' });
+                    loadProducts(els.searchBar.value.trim()); 
+                } catch(e) { showAlert('Erro', 'Falha ao excluir.'); }
+                finally { hideLoad(); }
+            });
+        };
+
+        // ==== FORMULÁRIO ====
+        const toggleSpecs = (cat) => {
+            els.specGroups.forEach(g => g.classList.remove('active'));
+            const active = document.getElementById(`spec-group-${cat}`);
+            if(active) active.classList.add('active');
+        };
+        els.catSelect.onchange = (e) => toggleSpecs(e.target.value);
+        
+        els.prodForm.onsubmit = async (e) => {
+            e.preventDefault();
+            showLoad();
+            const data = {
+                nome: document.getElementById('product-nome').value,
+                categoria: els.catSelect.value,
+                imagem_url: document.getElementById('product-imagem_url').value,
+                descricao: document.getElementById('product-descricao').value,
+                especificacoes: {}
+            };
+            const group = document.querySelector(`#spec-group-${data.categoria}`);
+            if(group) {
+                group.querySelectorAll('.spec-field').forEach(inp => {
+                    if(inp.value) {
+                        const key = inp.dataset.specKey;
+                        data.especificacoes[key] = key.includes('part_number_compativeis') ? inp.value.split(',').map(s=>s.trim()) : inp.value;
+                    }
+                });
+            }
+            const id = document.getElementById('product-id').value;
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `${API_BASE}/products/${id}` : `${API_BASE}/products`;
+            try {
+                await secureFetch(url, { method, body: JSON.stringify(data) });
+                els.prodForm.reset();
+                await loadProducts();
+                window.location.hash = 'products';
+            } catch(e) { showAlert('Erro', 'Falha ao salvar.'); }
+            finally { hideLoad(); }
+        };
+
+        // ==== SEARCH ====
+        els.searchBtn.onclick = () => {
+            const q = els.searchBar.value.trim();
+            loadProducts(q);
+        };
+        els.searchBar.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') els.searchBtn.click();
+        });
+
+        // ==== AUTH & INIT ====
+        els.loginForm.onsubmit = async (e) => {
+            e.preventDefault();
+            showLoad();
+            els.loginError.classList.add('hidden');
+            try {
+                const res = await fetch(`${API_BASE}/login`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        username: els.loginForm.username.value,
+                        password: els.loginForm.password.value
+                    })
+                });
+                const data = await res.json();
+                if(!res.ok) throw new Error(data.error || "Usuário ou senha inválidos");
+                
+                authToken = data.token;
+                localStorage.setItem('authToken', authToken);
+                els.loginModal.classList.remove('active');
+                els.mainApp.style.display = 'flex';
+                loadProducts(); 
+                handleHashChange();
+            } catch(e) {
+                els.loginError.innerText = e.message;
+                els.loginError.classList.remove('hidden');
+            } finally { hideLoad(); }
+        };
+        els.logoutBtn.onclick = () => {
+            authToken = null; localStorage.removeItem('authToken');
+            location.reload();
+        };
+
+        if(authToken) {
+            els.loginModal.classList.remove('active');
+            els.mainApp.style.display = 'flex';
+            loadProducts(); 
+            handleHashChange();
+        }
+
+        const updateKPIs = () => {
+            const total = allProducts.length;
+            const telas = allProducts.filter(p => p.categoria === 'Tela').length;
+            const baterias = allProducts.filter(p => p.categoria === 'Bateria').length;
+            document.getElementById('kpi-total').innerText = total;
+            document.getElementById('kpi-categories').innerText = new Set(allProducts.map(p=>p.categoria)).size;
+            document.getElementById('kpi-telas').innerText = telas;
+            document.getElementById('kpi-baterias').innerText = baterias;
+
+            const ctx = document.getElementById('categoryChart').getContext('2d');
+            if(window.myChart) window.myChart.destroy();
+            window.myChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Telas', 'Baterias', 'Teclados', 'Fontes'],
+                    datasets: [{
+                        data: [telas, baterias, allProducts.filter(p=>p.categoria==='Teclado').length, allProducts.filter(p=>p.categoria==='Fonte').length],
+                        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        };
+
+        ['back-to-products', 'back-to-products-from-form'].forEach(id => {
+            const btn = document.getElementById(id);
+            if(btn) btn.onclick = () => window.history.back();
+        });
+    </script>
+</body>
+</html>
