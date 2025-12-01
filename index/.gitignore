@@ -1,4 +1,3 @@
-# ARQUIVO: .gitignore
 node_modules
 .env
-/dist
+.DS_Store
